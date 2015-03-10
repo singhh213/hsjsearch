@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.0/themes/smoothness/jquery-ui.css" />
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+</head>
+<body>
+    <br />
+    <br />
+    <div id="searching">
+        <h1 id="title">HSJ Search</h1>
+        <br />
+        <form id="form">
+            <input type="text" name="input" placeholder="Search for something" id="input" />
+            <input type="submit" value="Search" id="find">
+
+        </form>
+        <div id="trieResult"></div>
+    </div>
+        <br />
+        <br />
+        <div id="player">
+            <h4 id="playerName"></h4>
+            <div id="nba" class="CSSTableGenerator"></div>
+        </div>
+        <br />
+        <br />
+        <br />
+        <br />
+        <div id="results"></div>
+
+
+    <script>
+
+        $(document).ready(function () {
+            $("#trieResult").hide();
+        });
+
+
+        function callback(data) {
+            if (data != null) {
+                
+                $("#playerName").append(data[0].PlayerName);
+                var myTableDiv = document.getElementById("nba");
+                var table = document.createElement('table');
+                var array = ["PPG", "GP", "FGP", "TPP", "FTP"];
+                    
+                var tr = document.createElement('tr');
+                table.appendChild(tr);
+                for (var i = 0; i < array.length; i++) {
+                    var th = document.createElement('td');
+                    th.width = '75';
+                    th.appendChild(document.createTextNode(array[i]));
+                    tr.appendChild(th);
+                }
+
+                var tr = document.createElement('tr');
+                table.appendChild(tr);
+                var array2 = [data[0].PPG, data[0].GP, data[0].FGP, data[0].TPP, data[0].FTP]
+
+                for (var i = 0; i < array2.length; i++) {
+                    var td = document.createElement('td');
+                    td.width = '75';
+                    td.appendChild(document.createTextNode(array2[i]));
+                    tr.appendChild(td);
+                }
+
+                myTableDiv.appendChild(table);
+            }
+        }
+
+        $("#form").submit(function (event) {
+            event.preventDefault()
+            $("#trieResult").hide();
+            $("#results").empty();
+            $("#nba").empty();            
+            $("#playerName").empty();
+            var enterText = $("#input").val().trim().toLowerCase();
+            console.log(enterText);
+
+            $.ajax({
+                crossDomain: true,
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                url: "http://ec2-54-187-147-253.us-west-2.compute.amazonaws.com/index.php",
+                data: ({input : enterText}),
+                dataType: "jsonp",
+                success: callback,
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/GetResults",
+                data: JSON.stringify({ input : enterText }),
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    if (data.d != null) {
+                        
+                        for (var i = 0; i < data.d.length; i += 3) {
+                            $("#results").append("<h3>" + data.d[i] + "</h3>" + "<br>" +
+                                "<a href=\"" + data.d[i + 2] + "\" onclick=\"rank(this)\">" + data.d[i + 2] + "</a>"
+                                + "<br>" + "<p>" + data.d[i + 1] + "</p>" + "<br><br>");
+                        }
+                    }
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+        function rank(url) {
+            console.log(url.href);
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/AddRank",
+                data: JSON.stringify({ input: url.href }),
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    console.log("rank added");
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        }
+
+
+        $("#input").keyup(function () {
+            $("#trieResult").hide();
+           $("#trieResult").empty();
+            var enterText = this.value.trim();
+            if (enterText.length != 0) {
+                $.ajax({
+                    type: "POST",
+                    url: "admin.asmx/AutoComplete",
+                    data: JSON.stringify({ str: enterText }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.d != null) {
+                            for (var i = 0; i < data.d.length; i++) {
+                                $("#trieResult").append(data.d[i] + "<br/>");
+                            }
+                            $("#trieResult").show();
+                        }
+                    },
+                    error: function (msg) {
+                        alert(msg);
+                    }
+                });
+            }
+        });
+
+        ( function() {
+            if (window.CHITIKA === undefined) { window.CHITIKA = { 'units' : [] }; };
+            var unit = {"calltype":"async[2]","publisher":"kakasingh24","width":200,"height":400,"sid":"Chitika Default","color_bg":"0f0e0f"};
+            var placement_id = window.CHITIKA.units.length;
+            window.CHITIKA.units.push(unit);
+            document.write('<div id="chitikaAdBlock-' + placement_id + '"></div>');
+        }());
+
+    </script>
+    <script type="text/javascript" src="//cdn.chitika.net/getads.js" async></script>
+
+</body>
+</html>
