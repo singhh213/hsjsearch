@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+
+</head>
+<body>
+    <br />
+    <button id="start">Start Crawling</button>
+    <div id="successCrawl"></div>
+    <br />
+    <button id="clear">Stop Crawling</button>
+    <div id="successClear"></div>
+    <br />
+    <button id="queue">Clear Queue</button>
+    <div id="queueClear"></div>
+    <br />
+    <button id="index">Clear Index</button>
+    <div id="indexClear"></div>
+    <br />
+
+
+    <form id="form">
+        <input type="text" name="input" placeholder="Enter url to search" id="input" />
+        <input type="submit" value="Search">
+    </form>
+    <br />
+    <div id="results"></div>
+
+    <h4>State of Worker Role: <span id="state"></span></h4>
+    <h4>CPU Utilization: <span id="cpu"></span></h4>
+    <h4>RAM Available: <span id="ram"></span></h4>
+    <h4>Number of URLs crawled: <span id="totalurls"></span></h4>
+    <h4>Size of Queue: <span id="queuesize"></span></h4>
+    <h4>Size of Index: <span id="tablesize"></span></h4>
+    <h4># of Query Suggest Titles: <span id="querysize"></span></h4>
+    <h4>Last Query Suggest Title: <span id="lasttitle"></span></h4>
+    <h4>Last 10 URLs crawled:</h4>
+    <div id="lastten"></div>
+    <h4>Errors: </h4>
+    <div id="errors"></div>
+    <script>
+
+        $("#form").submit(function () {
+            event.preventDefault()
+            var enterText = $("#input").val().trim();
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/GetPageTitle",
+                data: JSON.stringify({ input: enterText }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    $("#results").empty();
+                    $("#results").append(data.d);
+                    $("#input").val("");
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+
+        $("#start").click(function () {
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/StartCrawling",
+                data: "{}",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    $("#successCrawl").append(data.d);
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+        $("#clear").click(function () {
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/StopCrawling",
+                data: "{}",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    $("#lastten").empty();
+                    $("errors").empty();
+                    $("#successClear").delay(2000).append(data.d);
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+        $("#index").click(function () {
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/ClearIndex",
+                data: "{}",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    $("#indexClear").append(data.d);
+                    $("#start").prop("disabled", true);
+                    setTimeout(function () {
+                        $("#start").prop("disabled", false);
+                        $("#indexClear").replaceWith("<br/>" + "Index has been cleared" + "<br/>");
+                    }, 60000)
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+        $("#queue").click(function () {
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/ClearUrlQueue",
+                data: "{}",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    $("#queueClear").append(data.d);
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+        $(document).ready(function () {
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/Statistics",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    if (data.d != null) {
+                        $("#state").empty().append(data.d[0]);
+                        $("#cpu").empty().append(data.d[1]);
+                        $("#ram").empty().append(data.d[2]);
+                        $("#totalurls").empty().append(data.d[3]);
+                        $("#queuesize").empty().append(data.d[4]);
+                        $("#tablesize").empty().append(data.d[5]);
+                        $("#querysize").empty().append(data.d[6]);
+                        $("#lasttitle").empty().append(data.d[7]);
+                    }
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/LastTen",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    if (data.d != null) {
+                        for (var i = 0; i < data.d.length; i++) {
+                            $("#lastten").append(data.d[i] + "<br/>");
+                        }
+                    }
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "admin.asmx/ListErrors",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    if (data.d != null) {
+                        for (var i = 0; i < data.d.length; i++) {
+                            $("#errors").append(data.d[i] + "<br/>");
+                        }
+                    }
+                },
+                error: function (msg) {
+                    alert(msg);
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
